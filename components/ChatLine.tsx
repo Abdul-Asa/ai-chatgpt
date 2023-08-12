@@ -1,14 +1,17 @@
 import clsx from 'clsx'
-import Balancer from 'react-wrap-balancer'
+import { JSX } from "react";
+import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
+import { docco } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import Balancer from "react-wrap-balancer";
 
 // wrap Balancer to remove type errors :( - @TODO - fix this ugly hack
-const BalancerWrapper = (props: any) => <Balancer {...props} />
+const BalancerWrapper = (props: any) => <Balancer {...props} />;
 
-type ChatGPTAgent = 'user' | 'system' | 'assistant'
+type ChatGPTAgent = "user" | "system" | "assistant";
 
 export interface ChatGPTMessage {
-  role: ChatGPTAgent
-  content: string
+  role: ChatGPTAgent;
+  content: string;
 }
 
 // loading placeholder animation for the chat line
@@ -31,50 +34,75 @@ export const LoadingChatLine = () => (
       </div>
     </div>
   </div>
-)
+);
 
 // util helper to convert new lines to <br /> tags
-const convertNewLines = (text: string) =>
-  text.split('\n').map((line, i) => (
-    <span key={i}>
-      {line}
-      <br />
-    </span>
-  ))
 
-export function ChatLine({ role = 'assistant', content }: ChatGPTMessage) {
+const convertNewLines = (text: string) => {
+  const lines = text.split("\n");
+  const elements: JSX.Element[] = [];
+  let isCodeBlock = false;
+  let codeLanguage = "";
+  let codeContent = "";
+
+  lines.forEach((line, i) => {
+    if (line.startsWith("```")) {
+      if (isCodeBlock) {
+        elements.push(
+          <SyntaxHighlighter key={i} language={codeLanguage} style={docco}>
+            {codeContent}
+          </SyntaxHighlighter>
+        );
+        codeContent = "";
+        isCodeBlock = false;
+      } else {
+        codeLanguage = line.slice(3);
+        isCodeBlock = true;
+      }
+    } else if (isCodeBlock) {
+      codeContent += line + "\n";
+    } else {
+      elements.push(
+        <span key={i}>
+          {line}
+          <br />
+        </span>
+      );
+    }
+  });
+
+  return elements;
+};
+
+export function ChatLine({ role = "assistant", content }: ChatGPTMessage) {
   if (!content) {
-    return null
+    return null;
   }
-  const formatteMessage = convertNewLines(content)
+  const formattedMessage = convertNewLines(content);
 
   return (
     <div
       className={
-        role != 'assistant' ? 'float-right clear-both' : 'float-left clear-both'
+        role != "assistant" ? "float-right clear-both" : "float-left clear-both"
       }
     >
-      <BalancerWrapper>
-        <div className="float-right mb-5 rounded-lg bg-white px-4 py-5 shadow-lg ring-1 ring-zinc-100 sm:px-6">
-          <div className="flex space-x-3">
-            <div className="flex-1 gap-4">
-              <p className="font-large text-xxl text-gray-900">
-                <a href="#" className="hover:underline">
-                  {role == 'assistant' ? 'AI' : 'You'}
-                </a>
-              </p>
-              <p
-                className={clsx(
-                  'text ',
-                  role == 'assistant' ? 'font-semibold font- ' : 'text-gray-400'
-                )}
-              >
-                {formatteMessage}
-              </p>
-            </div>
-          </div>
+      <div className="float-right mb-5 rounded-lg bg-white px-4 py-5 shadow-lg ring-1 ring-zinc-100 sm:px-6">
+        <div className="flex-1 gap-4">
+          <p className="font-large text-xxl text-gray-900">
+            <a href="#" className="hover:underline">
+              {role == "assistant" ? "AI" : "You"}
+            </a>
+          </p>
+          <p
+            className={clsx(
+              "text ",
+              role == "assistant" ? "font-semibold font- " : "text-gray-400"
+            )}
+          >
+            {formattedMessage}
+          </p>
         </div>
-      </BalancerWrapper>
+      </div>
     </div>
-  )
+  );
 }
